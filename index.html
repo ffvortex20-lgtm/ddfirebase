@@ -6,11 +6,13 @@
     <style>
         body { background: #0a0a0a; color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
         .card { background: #1a0b2e; border: 2px solid #9d00ff; box-shadow: 0 0 20px #9d00ff; padding: 25px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; }
-        input, button { width: 100%; margin: 8px 0; padding: 12px; border-radius: 8px; border: none; box-sizing: border-box; }
+        input, button { width: 100%; margin: 6px 0; padding: 10px; border-radius: 8px; border: none; box-sizing: border-box; }
         button { font-weight: bold; cursor: pointer; transition: 0.3s; color: white; }
         .btn-gerar { background: #9d00ff; }
-        .btn-update { background: #00ccff; color: #000; }
-        .btn-apagar { background: #ff0044; }
+        .btn-put { background: #00ccff; color: #000; }
+        .btn-add { background: #7700ff; }
+        .btn-clear { background: #ff0044; }
+        .btn-apagar-tudo { background: #444; }
         button:hover { filter: brightness(1.2); box-shadow: 0 0 10px #fff; }
         #status { margin-top: 15px; color: #00ffcc; font-size: 0.9em; word-break: break-all; }
     </style>
@@ -23,17 +25,19 @@
     <h2 style="color: #9d00ff; text-shadow: 0 0 10px #9d00ff;">Painel Vortex Dev</h2>
     
     <input type="text" id="fbLink" placeholder="URL do Firebase">
-    
     <hr style="border: 0.5px solid #9d00ff;">
     
-    <input type="number" id="qtd" placeholder="Quantidade de Usuários">
-    <button class="btn-gerar" onclick="gerar()">Gerar Usuários Instantâneo</button>
+    <input type="number" id="qtd" placeholder="Qtd Usuários">
+    <button class="btn-gerar" onclick="gerar()">Gerar Usuários</button>
     
     <input type="text" id="linkUpdate" placeholder="Link da atualização">
     <input type="text" id="verUpdate" placeholder="Versão (ex: 1.0.0)">
-    <button class="btn-update" onclick="enviarUpdate()">Enviar Update</button>
     
-    <button class="btn-apagar" onclick="apagarTudo()">Apagar Todo o Banco</button>
+    <button class="btn-put" onclick="putUpdate()">PUT Update</button>
+    <button class="btn-add" onclick="addUpdate()">ADD (Índice 0)</button>
+    <button class="btn-clear" onclick="clearUpdate()">CLEAR Update</button>
+    
+    <button class="btn-apagar-tudo" onclick="apagarTudo()">Apagar TODO o Banco</button>
     
     <div id="status">Status: Pronto</div>
 </div>
@@ -46,32 +50,41 @@
     }
 
     async function gerar() {
-        const qtd = parseInt(document.getElementById('qtd').value);
-        const status = document.getElementById('status');
         const db = getDb();
-        status.innerHTML = "Gerando...";
-        
+        const qtd = parseInt(document.getElementById('qtd').value);
         const promessas = [];
         for (let i = 0; i < qtd; i++) {
             const id = "DDVT-" + Math.floor(Math.random() * 99999);
             promessas.push(db.ref('users/' + id).set({ login: id, expira: Date.now() + 86400000 }));
         }
         await Promise.all(promessas);
-        status.innerHTML = "Sucesso: " + qtd + " usuários criados!";
+        document.getElementById('status').innerHTML = "Usuários gerados!";
     }
 
-    async function enviarUpdate() {
+    async function putUpdate() {
         const db = getDb();
-        const link = document.getElementById('linkUpdate').value;
-        const ver = document.getElementById('verUpdate').value;
-        await db.ref('config').update({ "Update": [{ "link": link, "ver": ver }] });
-        document.getElementById('status').innerHTML = "Update enviado!";
+        await db.ref('config/Update').set([{ "link": document.getElementById('linkUpdate').value, "ver": document.getElementById('verUpdate').value }]);
+        document.getElementById('status').innerHTML = "Update (PUT) realizado!";
+    }
+
+    async function addUpdate() {
+        const db = getDb();
+        const snap = await db.ref('config/Update').once('value');
+        let lista = snap.val() || [];
+        lista.unshift({ "link": document.getElementById('linkUpdate').value, "ver": document.getElementById('verUpdate').value });
+        await db.ref('config/Update').set(lista);
+        document.getElementById('status').innerHTML = "Item adicionado (Índice 0)!";
+    }
+
+    async function clearUpdate() {
+        await getDb().ref('config/Update').remove();
+        document.getElementById('status').innerHTML = "Nó Update limpo!";
     }
 
     async function apagarTudo() {
-        if (!confirm("Tem certeza? Isso apagará TUDO.")) return;
+        if (!confirm("Tem certeza que deseja apagar TUDO?")) return;
         await getDb().ref().remove();
-        document.getElementById('status').innerHTML = "Banco limpo!";
+        document.getElementById('status').innerHTML = "Banco de dados limpo!";
     }
 </script>
 </body>

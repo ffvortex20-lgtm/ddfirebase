@@ -2,14 +2,17 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <title>Painel Vortex Dev</title>
     <style>
         body { background: #0a0a0a; color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
-        .card { background: #1a0b2e; border: 2px solid #9d00ff; box-shadow: 0 0 20px #9d00ff; padding: 30px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; }
-        input, button { width: 100%; margin: 10px 0; padding: 10px; border-radius: 5px; border: none; box-sizing: border-box; }
-        button { background: #9d00ff; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button.btn-apagar { background: #ff0044; }
-        button:hover { box-shadow: 0 0 15px #ff00ff; }
-        #status { margin-top: 20px; color: #00ffcc; font-weight: bold; }
+        .card { background: #1a0b2e; border: 2px solid #9d00ff; box-shadow: 0 0 20px #9d00ff; padding: 25px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; }
+        input, button { width: 100%; margin: 8px 0; padding: 12px; border-radius: 8px; border: none; box-sizing: border-box; }
+        button { font-weight: bold; cursor: pointer; transition: 0.3s; color: white; }
+        .btn-gerar { background: #9d00ff; }
+        .btn-update { background: #00ccff; color: #000; }
+        .btn-apagar { background: #ff0044; }
+        button:hover { filter: brightness(1.2); box-shadow: 0 0 10px #fff; }
+        #status { margin-top: 15px; color: #00ffcc; font-size: 0.9em; word-break: break-all; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -17,14 +20,22 @@
 <body>
 
 <div class="card">
-    <h2 style="color: #9d00ff; text-shadow: 0 0 10px #9d00ff;">Gerador DDVT</h2>
+    <h2 style="color: #9d00ff; text-shadow: 0 0 10px #9d00ff;">Painel Vortex Dev</h2>
+    
     <input type="text" id="fbLink" placeholder="URL do Firebase">
-    <input type="number" id="qtd" placeholder="Quantidade">
     
-    <button onclick="gerar()">Gerar Usuários</button>
-    <button class="btn-apagar" onclick="apagarTudo()">Apagar Todos os Dados</button>
+    <hr style="border: 0.5px solid #9d00ff;">
     
-    <div id="status">Status: Aguardando...</div>
+    <input type="number" id="qtd" placeholder="Quantidade de Usuários">
+    <button class="btn-gerar" onclick="gerar()">Gerar Usuários Instantâneo</button>
+    
+    <input type="text" id="linkUpdate" placeholder="Link da atualização">
+    <input type="text" id="verUpdate" placeholder="Versão (ex: 1.0.0)">
+    <button class="btn-update" onclick="enviarUpdate()">Enviar Update</button>
+    
+    <button class="btn-apagar" onclick="apagarTudo()">Apagar Todo o Banco</button>
+    
+    <div id="status">Status: Pronto</div>
 </div>
 
 <script>
@@ -38,29 +49,29 @@
         const qtd = parseInt(document.getElementById('qtd').value);
         const status = document.getElementById('status');
         const db = getDb();
+        status.innerHTML = "Gerando...";
         
-        status.innerHTML = "Processando...";
         const promessas = [];
         for (let i = 0; i < qtd; i++) {
             const id = "DDVT-" + Math.floor(Math.random() * 99999);
             promessas.push(db.ref('users/' + id).set({ login: id, expira: Date.now() + 86400000 }));
         }
         await Promise.all(promessas);
-        status.innerHTML = "Gerado com sucesso!";
+        status.innerHTML = "Sucesso: " + qtd + " usuários criados!";
+    }
+
+    async function enviarUpdate() {
+        const db = getDb();
+        const link = document.getElementById('linkUpdate').value;
+        const ver = document.getElementById('verUpdate').value;
+        await db.ref('config').update({ "Update": [{ "link": link, "ver": ver }] });
+        document.getElementById('status').innerHTML = "Update enviado!";
     }
 
     async function apagarTudo() {
-        if (!confirm("Tem certeza que deseja apagar TODOS os dados do banco?")) return;
-        
-        const status = document.getElementById('status');
-        try {
-            const db = getDb();
-            status.innerHTML = "Limpando banco de dados...";
-            await db.ref().remove();
-            status.innerHTML = "Banco de dados limpo com sucesso!";
-        } catch (e) {
-            status.innerHTML = "Erro ao apagar dados!";
-        }
+        if (!confirm("Tem certeza? Isso apagará TUDO.")) return;
+        await getDb().ref().remove();
+        document.getElementById('status').innerHTML = "Banco limpo!";
     }
 </script>
 </body>

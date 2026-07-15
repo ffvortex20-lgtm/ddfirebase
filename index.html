@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gerador de Usuários DDVT</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <h2>Gerador DDVT</h2>
+    <input type="text" id="fbLink" placeholder="URL do Firebase">
+    <input type="number" id="qtd" placeholder="Quantidade">
+    <select id="tempo">
+        <option value="1000">1 Segundo</option>
+        <option value="600000">10 Minutos</option>
+    </select>
+    <button onclick="gerar()">Gerar Usuários</button>
+
+    <script>
+        function gerar() {
+            const config = { databaseURL: document.getElementById('fbLink').value };
+            firebase.initializeApp(config);
+            const db = firebase.database();
+            const qtd = document.getElementById('qtd').value;
+            const delay = document.getElementById('tempo').value;
+
+            for (let i = 0; i < qtd; i++) {
+                setTimeout(() => {
+                    const id = "DDVT-" + Math.floor(Math.random() * 99999);
+                    const validade = Date.now() + 86400000; // 1 dia
+                    db.ref('users/' + id).set({ login: id, expira: validade });
+                    console.log("Gerado: " + id);
+                }, i * (delay / qtd));
+            }
+            alert("Processo iniciado!");
+        }
+    </script>
+</body>
+</html>

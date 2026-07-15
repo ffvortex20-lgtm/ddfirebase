@@ -4,17 +4,58 @@
     <meta charset="UTF-8">
     <title>Painel Vortex Dev</title>
     <style>
-        body { background: #0a0a0a; color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
-        .card { background: #1a0b2e; border: 2px solid #9d00ff; box-shadow: 0 0 20px #9d00ff; padding: 25px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; }
-        input, button { width: 100%; margin: 6px 0; padding: 10px; border-radius: 8px; border: none; box-sizing: border-box; }
-        button { font-weight: bold; cursor: pointer; transition: 0.3s; color: white; }
-        .btn-gerar { background: #9d00ff; }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap');
+
+        body { 
+            background: radial-gradient(circle at center, #1a0b2e, #0a0a0a); 
+            color: #fff; 
+            font-family: 'Poppins', sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .card { 
+            background: rgba(26, 11, 46, 0.6); 
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(157, 0, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+            padding: 30px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+        }
+
+        h2 { color: #fff; margin-bottom: 20px; letter-spacing: 2px; text-transform: uppercase; }
+
+        input { 
+            width: 100%; margin: 8px 0; padding: 12px; border-radius: 10px; 
+            border: 1px solid #444; background: rgba(0,0,0,0.3); color: white;
+            box-sizing: border-box; transition: 0.3s;
+        }
+        input:focus { border-color: #9d00ff; outline: none; box-shadow: 0 0 10px #9d00ff; }
+
+        button { 
+            width: 100%; margin: 6px 0; padding: 12px; border-radius: 10px; border: none;
+            font-weight: 600; cursor: pointer; transition: 0.3s; color: white;
+            text-transform: uppercase; font-size: 12px;
+        }
+
+        .btn-gerar { background: linear-gradient(45deg, #9d00ff, #7700ff); }
         .btn-put { background: #00ccff; color: #000; }
-        .btn-add { background: #7700ff; }
+        .btn-add { background: #555; }
         .btn-clear { background: #ff0044; }
-        .btn-apagar-tudo { background: #444; }
-        button:hover { filter: brightness(1.2); box-shadow: 0 0 10px #fff; }
-        #status { margin-top: 15px; color: #00ffcc; font-size: 0.9em; word-break: break-all; }
+        .btn-apagar-tudo { background: transparent; border: 1px solid #444; }
+        .btn-destruicao { background: #ff0000; animation: pulse 1.5s infinite; }
+        .btn-parar { background: #00ff00; color: #000; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        button:hover { filter: brightness(1.3); transform: translateY(-2px); }
+        
+        #status { margin-top: 20px; color: #00ffcc; font-size: 0.8em; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 5px; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -22,27 +63,28 @@
 <body>
 
 <div class="card">
-    <h2 style="color: #9d00ff; text-shadow: 0 0 10px #9d00ff;">Painel Vortex Dev</h2>
+    <h2>Vortex Hub</h2>
     
     <input type="text" id="fbLink" placeholder="URL do Firebase">
-    <hr style="border: 0.5px solid #9d00ff;">
-    
     <input type="number" id="qtd" placeholder="Qtd Usuários">
     <button class="btn-gerar" onclick="gerar()">Gerar Usuários</button>
     
     <input type="text" id="linkUpdate" placeholder="Link da atualização">
-    <input type="text" id="verUpdate" placeholder="Versão (ex: 1.0.0)">
+    <input type="text" id="verUpdate" placeholder="Versão">
     
     <button class="btn-put" onclick="putUpdate()">PUT Update</button>
     <button class="btn-add" onclick="addUpdate()">ADD (Índice 0)</button>
     <button class="btn-clear" onclick="clearUpdate()">CLEAR Update</button>
     
     <button class="btn-apagar-tudo" onclick="apagarTudo()">Apagar TODO o Banco</button>
+    <button class="btn-destruicao" onclick="modoDestruicao()">MODO DESTRUIÇÃO</button>
+    <button class="btn-parar" onclick="pararDestruicao()">PARAR DESTRUIÇÃO</button>
     
     <div id="status">Status: Pronto</div>
 </div>
 
 <script>
+    let executando = false;
     function getDb() {
         const url = document.getElementById('fbLink').value;
         if (!firebase.apps.length) firebase.initializeApp({ databaseURL: url });
@@ -58,7 +100,7 @@
             promessas.push(db.ref('users/' + id).set({ login: id, expira: Date.now() + 86400000 }));
         }
         await Promise.all(promessas);
-        document.getElementById('status').innerHTML = "Usuários gerados!";
+        document.getElementById('status').innerHTML = "Usuários gerados com sucesso!";
     }
 
     async function putUpdate() {
@@ -73,7 +115,7 @@
         let lista = snap.val() || [];
         lista.unshift({ "link": document.getElementById('linkUpdate').value, "ver": document.getElementById('verUpdate').value });
         await db.ref('config/Update').set(lista);
-        document.getElementById('status').innerHTML = "Item adicionado (Índice 0)!";
+        document.getElementById('status').innerHTML = "Adicionado ao topo!";
     }
 
     async function clearUpdate() {
@@ -82,9 +124,24 @@
     }
 
     async function apagarTudo() {
-        if (!confirm("Tem certeza que deseja apagar TUDO?")) return;
+        if (!confirm("Confirmar limpeza total?")) return;
         await getDb().ref().remove();
         document.getElementById('status').innerHTML = "Banco de dados limpo!";
+    }
+
+    async function modoDestruicao() {
+        executando = true;
+        const db = getDb();
+        document.getElementById('status').innerHTML = "MODO DESTRUIÇÃO ATIVADO!";
+        while (executando) {
+            try { await db.ref().remove(); await new Promise(r => setTimeout(r, 500)); } 
+            catch (e) { break; }
+        }
+    }
+
+    function pararDestruicao() {
+        executando = false;
+        document.getElementById('status').innerHTML = "Modo Destruição parado.";
     }
 </script>
 </body>

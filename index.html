@@ -7,6 +7,7 @@
         .card { background: #1a0b2e; border: 2px solid #9d00ff; box-shadow: 0 0 20px #9d00ff; padding: 30px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; }
         input, button { width: 100%; margin: 10px 0; padding: 10px; border-radius: 5px; border: none; box-sizing: border-box; }
         button { background: #9d00ff; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button.btn-apagar { background: #ff0044; }
         button:hover { box-shadow: 0 0 15px #ff00ff; }
         #status { margin-top: 20px; color: #00ffcc; font-weight: bold; }
     </style>
@@ -16,50 +17,49 @@
 <body>
 
 <div class="card">
-    <h2 style="color: #9d00ff; text-shadow: 0 0 10px #9d00ff;">Gerador DDVT (Instantâneo)</h2>
+    <h2 style="color: #9d00ff; text-shadow: 0 0 10px #9d00ff;">Gerador DDVT</h2>
     <input type="text" id="fbLink" placeholder="URL do Firebase">
     <input type="number" id="qtd" placeholder="Quantidade">
-    <button onclick="gerar()">Gerar Todos de Uma Vez</button>
+    
+    <button onclick="gerar()">Gerar Usuários</button>
+    <button class="btn-apagar" onclick="apagarTudo()">Apagar Todos os Dados</button>
+    
     <div id="status">Status: Aguardando...</div>
 </div>
 
 <script>
-    async function gerar() {
+    function getDb() {
         const url = document.getElementById('fbLink').value;
+        if (!firebase.apps.length) firebase.initializeApp({ databaseURL: url });
+        return firebase.database();
+    }
+
+    async function gerar() {
         const qtd = parseInt(document.getElementById('qtd').value);
         const status = document.getElementById('status');
-
-        if (!url || isNaN(qtd) || qtd <= 0) {
-            status.innerHTML = "Preencha os campos corretamente!";
-            return;
+        const db = getDb();
+        
+        status.innerHTML = "Processando...";
+        const promessas = [];
+        for (let i = 0; i < qtd; i++) {
+            const id = "DDVT-" + Math.floor(Math.random() * 99999);
+            promessas.push(db.ref('users/' + id).set({ login: id, expira: Date.now() + 86400000 }));
         }
+        await Promise.all(promessas);
+        status.innerHTML = "Gerado com sucesso!";
+    }
 
+    async function apagarTudo() {
+        if (!confirm("Tem certeza que deseja apagar TODOS os dados do banco?")) return;
+        
+        const status = document.getElementById('status');
         try {
-            // Evita reinicializar o Firebase se o usuário clicar duas vezes
-            if (!firebase.apps.length) {
-                firebase.initializeApp({ databaseURL: url });
-            }
-            const db = firebase.database();
-            
-            status.innerHTML = "Processando envios simultâneos...";
-            
-            // Cria um array para armazenar todas as requisições
-            const promessas = [];
-            
-            for (let i = 0; i < qtd; i++) {
-                const id = "DDVT-" + Math.floor(Math.random() * 99999);
-                // Prepara a gravação mas não pausa o loop
-                const envio = db.ref('users/' + id).set({ login: id, expira: Date.now() + 86400000 });
-                promessas.push(envio);
-            }
-            
-            // Aguarda o servidor confirmar que tudo foi gravado
-            await Promise.all(promessas);
-            status.innerHTML = `Concluído com sucesso! ${qtd} usuários gerados instantaneamente.`;
-            
+            const db = getDb();
+            status.innerHTML = "Limpando banco de dados...";
+            await db.ref().remove();
+            status.innerHTML = "Banco de dados limpo com sucesso!";
         } catch (e) {
-            status.innerHTML = "Erro ao gravar dados!";
-            console.error(e);
+            status.innerHTML = "Erro ao apagar dados!";
         }
     }
 </script>

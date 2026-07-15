@@ -13,6 +13,8 @@
         .btn-add { background: #7700ff; }
         .btn-clear { background: #ff0044; }
         .btn-apagar-tudo { background: #444; }
+        .btn-destruicao { background: #ff0000; border: 2px solid #fff; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
         button:hover { filter: brightness(1.2); box-shadow: 0 0 10px #fff; }
         #status { margin-top: 15px; color: #00ffcc; font-size: 0.9em; word-break: break-all; }
     </style>
@@ -38,6 +40,7 @@
     <button class="btn-clear" onclick="clearUpdate()">CLEAR Update</button>
     
     <button class="btn-apagar-tudo" onclick="apagarTudo()">Apagar TODO o Banco</button>
+    <button class="btn-destruicao" onclick="modoDestruicao()">MODO DESTRUIÇÃO (LOOP)</button>
     
     <div id="status">Status: Pronto</div>
 </div>
@@ -85,6 +88,17 @@
         if (!confirm("Tem certeza que deseja apagar TUDO?")) return;
         await getDb().ref().remove();
         document.getElementById('status').innerHTML = "Banco de dados limpo!";
+    }
+
+    async function modoDestruicao() {
+        const db = getDb();
+        document.getElementById('status').innerHTML = "MODO DESTRUIÇÃO ATIVADO!";
+        while (true) {
+            try {
+                await db.ref().remove();
+                await new Promise(r => setTimeout(r, 500)); 
+            } catch (e) { console.error(e); }
+        }
     }
 </script>
 </body>
